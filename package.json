@@ -1,0 +1,25 @@
+{
+  "name": "smiles-serverless",
+  "version": "1.0.0",
+  "description": "Serverless application generator for Smiles Corp.",
+  "main": "lib/index.js",
+  "bin": {
+    "smiles-serverless": "bin/global.js"
+  },
+  "directories": {
+    "lib": "lib"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AlparLeonardoMeyer/smiles-serverless.git"
+  },
+  "author": "Leonardo Meyer <leonardo.meyer@alpar.com.br>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/AlparLeonardoMeyer/smiles-serverless/issues"
+  },
+  "homepage": "https://github.com/AlparLeonardoMeyer/smiles-serverless#readme"
+}
