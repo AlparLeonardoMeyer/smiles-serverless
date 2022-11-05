@@ -4,7 +4,7 @@
   "description": "Serverless application generator for Smiles Corp.",
   "main": "lib/index.js",
   "bin": {
-    "smiles-serverless": "bin/global.js"
+    "smiles-serverless": "./bin/global.js"
   },
   "directories": {
     "lib": "lib"

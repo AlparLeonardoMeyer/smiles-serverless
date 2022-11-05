@@ -1,0 +1,36 @@
+.PHONY: build-RuntimeDependenciesLayer build-lambda-common
+.PHONY: build-SearchAvailablePlan build-ListPendingPayments build-GetMemberPlan build-PreCancel build-SearchRelatedPlan build-SearchAvailablePlan build-ClubSOAP
+
+build-SearchAvailablePlan:
+	$(MAKE) HANDLER=src/handlers/searchAvailablePlan.ts build-lambda-common
+
+build-GetMemberPlan:
+	$(MAKE) HANDLER=src/handlers/getMemberPlan.ts build-lambda-common
+
+build-ListPendingPayments:
+	$(MAKE) HANDLER=src/handlers/listPendingPayments.ts build-lambda-common
+
+build-PreCancel:
+	$(MAKE) HANDLER=src/handlers/preCancel.ts build-lambda-common
+
+build-SearchRelatedPlan:
+	$(MAKE) HANDLER=src/handlers/searchRelatedPlan.ts build-lambda-common
+
+build-SearchAvailablePlan:
+	$(MAKE) HANDLER=src/handlers/searchAvailablePlan.ts build-lambda-common
+
+build-ClubSOAP:
+	$(MAKE) HANDLER=src/handlers/clubSoap.ts build-lambda-common
+
+build-lambda-common:
+	npm install
+	rm -rf dist
+	echo "{\"extends\": \"./tsconfig.json\", \"include\": [\"${HANDLER}\"] }" > tsconfig-only-handler.json
+	npm run build -- --build tsconfig-only-handler.json
+	cp -r dist "$(ARTIFACTS_DIR)/"
+
+build-RuntimeDependenciesLayer:
+	mkdir -p "$(ARTIFACTS_DIR)/nodejs"
+	cp package.json package-lock.json "$(ARTIFACTS_DIR)/nodejs/"
+	npm install --production --prefix "$(ARTIFACTS_DIR)/nodejs/"
+	rm "$(ARTIFACTS_DIR)/nodejs/package.json" # to avoid rebuilding when changes aren't related to dependencies

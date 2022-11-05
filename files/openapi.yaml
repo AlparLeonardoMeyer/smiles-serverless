@@ -1,0 +1,2017 @@
+openapi: 3.0.0
+info:
+  title: smiles-lambda-club
+  version: '1.0'
+  description: API para processamento de operações relacionadas ao club smiles.
+  contact:
+    name: Bernardo
+    url: 'https://github.com/BernardMF'
+    email: bernardo.martins@newgo.com.br
+servers:
+  - url: 'https://apigw-dev1.smiles.com.br/cs/plan'
+    description: dev1
+  - url: 'https://apigw-hml5.smiles.com.br/cs/plan'
+    description: hml5
+  - url: 'https://apigw.smiles.com.br/cs/plan'
+    description: blue
+x-amazon-apigateway-cors:
+  allowMethods:
+    - '*'
+  allowHeaders:
+    - content-type
+    - authorization
+  maxAge: 0
+  allowCredentials: false
+  allowOrigins:
+    - '*'
+x-amazon-apigateway-request-validators:
+  all:
+    validateRequestBody: true
+    validateRequestParameters: true
+  params:
+    validateRequestBody: true
+    validateRequestParameters: true
+  body:
+    validateRequestBody: true
+    validateRequestParameters: false
+paths:
+  /plans/details:
+    get:
+      summary: Obter detalhes de um plano de um membro
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetMemberPlanResponseType'
+      security:
+        - Auth0:
+            - profile
+      operationId: get-v2-club-getMemberPlan
+      description: (GetMemberPlan) Obter detalhes de um plano de um membro.
+      parameters:
+        - schema:
+            type: string
+          in: query
+          name: memberNumber
+          description: member number
+        - schema:
+            type: boolean
+          in: query
+          name: checkPendingPlan
+        - schema:
+            type: string
+          in: header
+          name: channel
+          description: check if has a plan to be signed
+    parameters: []
+  /plans/available:
+    get:
+      summary: Pesquisar planos disponíveis
+      tags: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchAvailablePlanResponseType'
+      operationId: get-v2-club
+      parameters:
+        - schema:
+            type: string
+          in: query
+          name: promotionChannel
+        - schema:
+            type: boolean
+          in: query
+          name: isCheckout
+        - schema:
+            type: string
+          in: header
+          name: channel
+      security:
+        - Auth0:
+            - profile
+      description: (SearchAvailablePlan) Pesquisar planos disponíveis e seus benefícios
+      x-internal: false
+    parameters: []
+  /plans/related:
+    get:
+      summary: Pesquisar planos relacionados
+      tags: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  SearchRelatedPlanResponse:
+                    $ref: '#/components/schemas/SearchRelatedPlanResponseType'
+      operationId: get-v2-club-searchRelatedPlan
+      security:
+        - Auth0: []
+      description: (SearchRelatedPlan) Pesquisar planos relacionados
+      parameters:
+        - schema:
+            type: string
+          in: query
+          name: planId
+          required: true
+        - schema:
+            type: string
+          in: query
+          name: migrationType
+          required: true
+        - schema:
+            type: string
+          in: query
+          name: promotionChannel
+        - schema:
+            type: string
+          in: header
+          name: region
+        - schema:
+            type: string
+          in: header
+          name: channel
+    parameters: []
+  /plans/precancel:
+    delete:
+      summary: Pré cancelar um plano
+      operationId: delete-v2-club-getMemberPlan---copy
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreCancelResponseType'
+              examples:
+                response-example-1:
+                  value:
+                    cancellationRequested: true
+                    signatureDate: string
+                    gracePeriodEndDate: string
+                    validityEndDate: string
+                    effectiveCancellationDate: string
+                    usedMiles: true
+                    monthsToValidityEndDate: 0
+                    monthsToGracePeriodoEndDate: 0
+                    sevenDaysCancellation: true
+                    cancellationCost: 0
+                    refundValue: 0
+                    paymentId: string
+                    oldPaymentId: string
+                    oldGracePeriodEndDate: string
+                    oldValidityEndDate: string
+                    oldMonthsToValidityEndDate: 0
+                    oldMonthsToGracePeriodoEndDate: 0
+                    oldCancellationCost: 0
+                    signatureCode: string
+                    upgradeType: string
+                    oldSignatureCode: string
+                    isCanalPromo: true
+                    isCancelTxnAdesao: true
+                    isMilhasTodasUtilizadas: true
+                    permiteCancelImediato: true
+                    qtdMilhasResgatar: string
+                    qtdMilhasARemoverDisplay: string
+      description: (PreCancel) Iniciar pre cancelamento de um plano
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PreCancelRequestType'
+        description: ''
+      security:
+        - Auth0: []
+    parameters: []
+  /payments/pending:
+    get:
+      summary: Obter pagamentos pendentes
+      tags: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ListPendingPaymentsResponse:
+                    $ref: '#/components/schemas/ListPendingPaymentsResponse'
+      operationId: get-v2-club-listpendingpayments
+      security:
+        - Auth0:
+            - profile
+      description: (ListPendingPayments) Obter pagamentos pendentes
+      parameters:
+        - schema:
+            type: string
+          in: query
+          name: signatureCode
+          required: true
+    parameters: []
+components:
+  schemas:
+    SearchAvailablePlanRequestType:
+      title: SearchAvailablePlanRequestType
+      type: object
+      properties:
+        memberNumber:
+          type: string
+          minLength: 9
+          maxLength: 9
+        promotionChannel:
+          type: string
+        isCheckout:
+          type: boolean
+      required:
+        - memberNumber
+    SearchAvailablePlanResponseType:
+      title: SearchAvailablePlanResponseType
+      type: object
+      properties:
+        availableChannel:
+          type: string
+        isPromotional:
+          type: boolean
+        banner:
+          $ref: '#/components/schemas/BannerType'
+        planList:
+          type: array
+          items:
+            $ref: '#/components/schemas/SmilesClubPlanType'
+        commonBenefitList:
+          type: array
+          items:
+            $ref: '#/components/schemas/CommonBenefitType'
+        isMilesBackActive:
+          type: boolean
+        isMilesBackRenewActive:
+          type: boolean
+      required:
+        - planList
+    BannerType:
+      title: BannerType
+      type: object
+      properties:
+        thumbs:
+          type: string
+        version:
+          type: string
+    SmilesClubPlanType:
+      title: SmilesClubPlanType
+      type: object
+      properties:
+        id:
+          type: string
+        milesQuantity:
+          type: integer
+        monthlyCost:
+          type: string
+          format: money
+          pattern: '^\d+^\d+(\.\d{2})?$'
+        name:
+          type: string
+        dueDayList:
+          type: array
+          items:
+            type: string
+        benefitList:
+          type: array
+          items:
+            $ref: '#/components/schemas/SmilesClubPlanBenefitType'
+        expiredDate:
+          type: string
+          format: date-time
+        cardBanner:
+          $ref: '#/components/schemas/BannerType'
+        paymentBanner:
+          $ref: '#/components/schemas/BannerType'
+        titleText:
+          type: string
+        paymentText:
+          type: string
+        enrollmentChannel:
+          type: string
+        isPromotional:
+          type: boolean
+        promotionalPrice:
+          type: number
+        promotionalPaymentNumber:
+          type: integer
+        type:
+          type: string
+        annualCost:
+          type: string
+          format: money
+          pattern: '^\d+(\.\d{2})?$'
+        installmentOptionList:
+          type: array
+          items:
+            $ref: '#/components/schemas/InstallmentOptionType'
+        validity:
+          type: integer
+        gracePeriod:
+          type: integer
+        automaticRenewal:
+          type: boolean
+        forecastDates:
+          $ref: '#/components/schemas/ForecastDatesType'
+        validityEndDate:
+          type: string
+          format: date
+        gracePeriodEndDate:
+          type: string
+          format: date
+        istallmentQuantity:
+          type: integer
+        transactionQuantity:
+          type: integer
+        signatureCode:
+          type: string
+        paymentList:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaymentType'
+        autoRenewPlanMilesQty:
+          type: string
+        autoRenewPlanType:
+          type: string
+        autoRenewPlanAnnualCost:
+          type: number
+        milesPlan:
+          type: integer
+        antecipatedPayDays:
+          type: integer
+    CommonBenefitType:
+      title: CommonBenefitType
+      type: object
+      properties:
+        icon:
+          $ref: '#/components/schemas/IconType'
+        titleText:
+          type: string
+        descriptionText:
+          type: string
+    IconType:
+      title: IconType
+      type: object
+      properties:
+        thumbs:
+          type: string
+        version:
+          type: string
+    SmilesClubPlanBenefitType:
+      title: SmilesClubPlanBenefitType
+      type: object
+      properties:
+        id:
+          type: string
+        description:
+          type: string
+        name:
+          type: string
+        active:
+          type: boolean
+        brandNew:
+          type: boolean
+        icon:
+          $ref: '#/components/schemas/BannerType'
+    InstallmentOptionType:
+      title: InstallmentOptionType
+      type: object
+      properties:
+        quantity:
+          type: string
+    ForecastDatesType:
+      title: ForecastDatesTypes
+      type: object
+      properties:
+        firstRecurrenceDate:
+          type: string
+          format: date
+        validityEndDate:
+          type: string
+          format: date
+        gracePeriodEndDate:
+          type: string
+          format: date
+    PaymentType:
+      title: PaymentType
+      type: object
+      properties:
+        id:
+          type: string
+        authorizationCode:
+          type: string
+        creditCard:
+          $ref: '#/components/schemas/CreditCardType'
+        paymentDate:
+          type: string
+          format: date-time
+        signatureID:
+          type: string
+        status:
+          type: string
+        totalValue:
+          type: number
+        miles:
+          type: integer
+        validityPeriod:
+          type: string
+        reference:
+          type: string
+        paymentId:
+          type: string
+        installmentQuantity:
+          type: integer
+        validityStartDate:
+          type: string
+          format: date-time
+        validityEndDate:
+          type: string
+          format: date-time
+    CreditCardType:
+      title: CreditCardType
+      type: object
+      properties:
+        type:
+          type: string
+        holderName:
+          type: string
+        number:
+          type: string
+        expirationDate:
+          type: string
+        verificationCode:
+          type: string
+        brand:
+          type: string
+        bin:
+          type: string
+        authorizationCode:
+          type: string
+        pspReference:
+          type: string
+        nsu:
+          type: string
+        acquiringCompany:
+          type: string
+        token:
+          type: string
+        transactionId:
+          type: string
+        issuingBank:
+          type: string
+        isPrimary:
+          type: boolean
+        tokenAux:
+          type: string
+        identifier:
+          type: string
+        gateway:
+          type: string
+    GetMemberPlanRequestType:
+      description: ''
+      type: object
+      x-examples:
+        example-1:
+          memberNumber: string
+          checkPendingPlan: boolean
+      properties:
+        memberNumber:
+          type: string
+          minLength: 1
+        checkPendingPlan:
+          type: boolean
+      required:
+        - memberNumber
+        - checkPendingPlan
+    GetMemberPlanResponseType:
+      description: ''
+      type: object
+      x-examples:
+        example-1:
+          signatureCode: string
+          membershipStatus: 'common:SmilesClubMemberStatusType'
+          currentPlan:
+            id: string
+            milesQuantity: long
+            monthlyCost: number
+            name: string
+            dueDayList: Array<string>
+            benefitList:
+              - id: string
+                description: string
+                name: string
+                active: boolean
+                brandNew: boolean
+                icon:
+                  thumbs: string
+                  version: string
+            expiredDate: dateTime
+            cardBanner:
+              thumbs: string
+              version: string
+            paymentBanner:
+              thumbs: string
+              version: string
+            titleText: string
+            paymentText: string
+            enrollmentChannel: string
+            isPromotional: boolean
+            promotionalPrice: number
+            promotionalPaymentNumber: number
+            type: string
+            annualCost: number
+            installmentOptionList:
+              - quantity: string
+            validity: number
+            gracePeriod: number
+            automaticRenewal: boolean
+            forecastDates:
+              firstRecurrenceDate: date
+              validtyEndDate: date
+              gracePeriodEndDate: date
+            validtyEndDate: date
+            gracePeriodEndDate: date
+            installmentQuantity: number
+            transactionQuantity: number
+            signatureCode: string
+            paymentList:
+              - id: string
+                authorizationCode: string
+                creditCard:
+                  type: string
+                  holderName: string
+                  number: string
+                  expirationDate: string
+                  verificationCode: string
+                  brand: string
+                  bin: string
+                  authorizationCode: string
+                  pspReference: string
+                  nsu: string
+                  acquiringCompany: string
+                  token: string
+                  transactionId: string
+                  issuingBank: string
+                  isPrimary: boolean
+                  tokenAux: string
+                  identifier: string
+                  gateway: string
+                paymentDate: dateTime
+                signatureId: string
+                status: string
+                totalValue: number
+                miles: number
+                validityPeriod: string
+                reference: string
+                paymentId: string
+                installmentQuantity: number
+                validityStartDate: dateTime
+                validityEndDate: dateTime
+            autoRenewPlanMilesQty: string
+            autoRenewPlanType: string
+            autoRenewPlanAnnualCost: number
+            milesPlan: number
+            anticaptedPayDays: number
+          clubMemberSince: dateTime
+          CancellationSRId: string
+          CancellationSRStatus: string
+          cancellationSRDate: dateTime
+          paymentList:
+            - id: string
+              authorizationCode: string
+              creditCard:
+                bin: string
+                number: string
+                brand: string
+                nsu: string
+                token: string
+                gateway: string
+              paymentDate: dateTime
+              signatureId: string
+              status: string
+              totalValue: number
+              miles: number
+              validityPeriod: string
+              reference: string
+              paymentId: string
+              installmentQuantity: number
+              validityStartDate: dateTime
+              validityEndDate: dateTime
+          newPlanId: string
+          newPlanOperationType: string
+          newPlanRequestedDate: dateTime
+          newPlanName: string
+          currentCreditCard:
+            type: string
+            holderName: string
+            number: string
+            expirationDate: string
+            verificatonCode: string
+            brand: string
+            bin: string
+            authorizationCode: string
+            pspReference: string
+            nsu: string
+            acquiringCompany: string
+            token: string
+            transactionId: string
+            issuingBank: string
+            isPrimaty: boolean
+            tokenAux: string
+            identifier: string
+            gateway: string
+          pendingPlan:
+            id: string
+            milesQuantity: number
+            monthlyCost: number
+            name: string
+            dueDayList: Array<string>
+            benefitList:
+              - id: string
+                description: string
+                name: string
+                active: boolean
+                brandNew: boolean
+                icon:
+                  thumbs: string
+                  version: string
+            expirationDate: string
+            cardBanner:
+              thumbs: string
+              version: string
+            paymentBanner:
+              thumbs: string
+              version: string
+            titleText: string
+            paymentText: string
+            enrollmentChannel: string
+            isPromotional: boolean
+            promotionalPrice: number
+            promotionalPaymentNumber: number
+            type: string
+            annualCost: number
+            installmentOptionList:
+              - quantity: string
+            forecastDates:
+              firstRecurrenceDate: date
+              validtyEndDate: date
+              gracePeriodEndDate: date
+            validtyEndDate: date
+            gracePeriodEndDate: date
+            installmentQuantity: number
+            transactionQuantity: number
+            signatureCode: string
+            paymentList:
+              - id: string
+                authorizationCode: string
+                creditCard:
+                  type: string
+                  holderName: string
+                  number: string
+                  expirationDate: string
+                  verificationCode: string
+                  brand: string
+                  bin: string
+                  authorizationCode: string
+                  pspReference: string
+                  nsu: string
+                  acquiringCompany: string
+                  token: string
+                  transactionId: string
+                  issuingBank: string
+                  isPrimary: boolean
+                  tokenAux: string
+                  identifier: string
+                  gateway: string
+                paymentDate: dateTime
+                signatureId: string
+                status: string
+                totalValue: number
+                miles: number
+                validityPeriod: string
+                reference: string
+                paymentId: string
+                installmentQuantity: number
+                validityStartDate: dateTime
+                validityEndDate: dateTime
+            autoRenewPlanMilesQty: string
+            autoRenewPlanType: string
+            autoRenewPlanAnnualCost: number
+            milesPlan: number
+            antecipatedPayDays: number
+          renewSRId: string
+          renewSRNum: string
+          renewSrStatus: string
+          renewRequestDate: dateTime
+          isRenewable: boolean
+          downgradeGracePeriod: string
+          downgradeGracePeriodDays: string
+          allowPromotional: boolean
+          clubNewSignatureSince: dateTime
+          bonusVipBenefit:
+            id: string
+            bonus: number
+            bonusAvailable: boolean
+            bonusUsed: boolean
+            availableBonusValidity: dateTime
+            nextBonusDate: dateTime
+            activeBonusValidity: dateTime
+            paymentList:
+              - id: string
+                paymentDate: dateTime
+                status: string
+          promotionalFlg: boolean
+          oldSignatureStatus: string
+          oldSignatureUpgradeReqDate: date
+          clubSignDate: date
+          showOutlet: boolean
+          isNewAdhesion: boolean
+          allowAnticipation: boolean
+          allowCancellation: boolean
+      properties:
+        signatureCode:
+          type: string
+          minLength: 1
+        membershipStatus:
+          type: string
+          minLength: 1
+        currentPlan:
+          type: object
+          required:
+            - id
+            - milesQuantity
+            - monthlyCost
+            - name
+            - dueDayList
+            - benefitList
+            - expiredDate
+            - cardBanner
+            - paymentBanner
+            - titleText
+            - paymentText
+            - enrollmentChannel
+            - isPromotional
+            - promotionalPrice
+            - promotionalPaymentNumber
+            - type
+            - annualCost
+            - installmentOptionList
+            - validity
+            - gracePeriod
+            - automaticRenewal
+            - forecastDates
+            - validtyEndDate
+            - gracePeriodEndDate
+            - installmentQuantity
+            - transactionQuantity
+            - signatureCode
+            - paymentList
+            - autoRenewPlanMilesQty
+            - autoRenewPlanType
+            - autoRenewPlanAnnualCost
+            - milesPlan
+            - anticaptedPayDays
+          properties:
+            id:
+              type: string
+              minLength: 1
+            milesQuantity:
+              type: string
+              minLength: 1
+            monthlyCost:
+              type: string
+              minLength: 1
+            name:
+              type: string
+              minLength: 1
+            dueDayList:
+              type: string
+              minLength: 1
+            benefitList:
+              type: array
+              uniqueItems: true
+              minItems: 1
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    minLength: 1
+                  description:
+                    type: string
+                    minLength: 1
+                  name:
+                    type: string
+                    minLength: 1
+                  active:
+                    type: string
+                    minLength: 1
+                  brandNew:
+                    type: string
+                    minLength: 1
+                  icon:
+                    type: object
+                    properties:
+                      thumbs:
+                        type: string
+                        minLength: 1
+                      version:
+                        type: string
+                        minLength: 1
+                    required:
+                      - thumbs
+                      - version
+                required:
+                  - id
+                  - description
+                  - name
+                  - active
+                  - brandNew
+            expiredDate:
+              type: string
+              minLength: 1
+            cardBanner:
+              type: object
+              required:
+                - thumbs
+                - version
+              properties:
+                thumbs:
+                  type: string
+                  minLength: 1
+                version:
+                  type: string
+                  minLength: 1
+            paymentBanner:
+              type: object
+              required:
+                - thumbs
+                - version
+              properties:
+                thumbs:
+                  type: string
+                  minLength: 1
+                version:
+                  type: string
+                  minLength: 1
+            titleText:
+              type: string
+              minLength: 1
+            paymentText:
+              type: string
+              minLength: 1
+            enrollmentChannel:
+              type: string
+              minLength: 1
+            isPromotional:
+              type: string
+              minLength: 1
+            promotionalPrice:
+              type: string
+              minLength: 1
+            promotionalPaymentNumber:
+              type: string
+              minLength: 1
+            type:
+              type: string
+              minLength: 1
+            annualCost:
+              type: string
+              minLength: 1
+            installmentOptionList:
+              type: array
+              uniqueItems: true
+              minItems: 1
+              items:
+                type: object
+                properties:
+                  quantity:
+                    type: string
+                    minLength: 1
+                required:
+                  - quantity
+            validity:
+              type: string
+              minLength: 1
+            gracePeriod:
+              type: string
+              minLength: 1
+            automaticRenewal:
+              type: string
+              minLength: 1
+            forecastDates:
+              type: object
+              required:
+                - firstRecurrenceDate
+                - validtyEndDate
+                - gracePeriodEndDate
+              properties:
+                firstRecurrenceDate:
+                  type: string
+                  minLength: 1
+                validtyEndDate:
+                  type: string
+                  minLength: 1
+                gracePeriodEndDate:
+                  type: string
+                  minLength: 1
+            validtyEndDate:
+              type: string
+              minLength: 1
+            gracePeriodEndDate:
+              type: string
+              minLength: 1
+            installmentQuantity:
+              type: string
+              minLength: 1
+            transactionQuantity:
+              type: string
+              minLength: 1
+            signatureCode:
+              type: string
+              minLength: 1
+            paymentList:
+              type: array
+              uniqueItems: true
+              minItems: 1
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    minLength: 1
+                  authorizationCode:
+                    type: string
+                    minLength: 1
+                  creditCard:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                        minLength: 1
+                      holderName:
+                        type: string
+                        minLength: 1
+                      number:
+                        type: string
+                        minLength: 1
+                      expirationDate:
+                        type: string
+                        minLength: 1
+                      verificationCode:
+                        type: string
+                        minLength: 1
+                      brand:
+                        type: string
+                        minLength: 1
+                      bin:
+                        type: string
+                        minLength: 1
+                      authorizationCode:
+                        type: string
+                        minLength: 1
+                      pspReference:
+                        type: string
+                        minLength: 1
+                      nsu:
+                        type: string
+                        minLength: 1
+                      acquiringCompany:
+                        type: string
+                        minLength: 1
+                      token:
+                        type: string
+                        minLength: 1
+                      transactionId:
+                        type: string
+                        minLength: 1
+                      issuingBank:
+                        type: string
+                        minLength: 1
+                      isPrimary:
+                        type: string
+                        minLength: 1
+                      tokenAux:
+                        type: string
+                        minLength: 1
+                      identifier:
+                        type: string
+                        minLength: 1
+                      gateway:
+                        type: string
+                        minLength: 1
+                    required:
+                      - type
+                      - holderName
+                      - number
+                      - expirationDate
+                      - verificationCode
+                      - brand
+                      - bin
+                      - authorizationCode
+                      - pspReference
+                      - nsu
+                      - acquiringCompany
+                      - token
+                      - transactionId
+                      - issuingBank
+                      - isPrimary
+                      - tokenAux
+                      - identifier
+                      - gateway
+                  paymentDate:
+                    type: string
+                    minLength: 1
+                  signatureId:
+                    type: string
+                    minLength: 1
+                  status:
+                    type: string
+                    minLength: 1
+                  totalValue:
+                    type: string
+                    minLength: 1
+                  miles:
+                    type: string
+                    minLength: 1
+                  validityPeriod:
+                    type: string
+                    minLength: 1
+                  reference:
+                    type: string
+                    minLength: 1
+                  paymentId:
+                    type: string
+                    minLength: 1
+                  installmentQuantity:
+                    type: string
+                    minLength: 1
+                  validityStartDate:
+                    type: string
+                    minLength: 1
+                  validityEndDate:
+                    type: string
+                    minLength: 1
+                required:
+                  - id
+                  - authorizationCode
+                  - paymentDate
+                  - signatureId
+                  - status
+                  - totalValue
+                  - miles
+                  - validityPeriod
+                  - reference
+                  - paymentId
+                  - installmentQuantity
+                  - validityStartDate
+                  - validityEndDate
+            autoRenewPlanMilesQty:
+              type: string
+              minLength: 1
+            autoRenewPlanType:
+              type: string
+              minLength: 1
+            autoRenewPlanAnnualCost:
+              type: string
+              minLength: 1
+            milesPlan:
+              type: string
+              minLength: 1
+            anticaptedPayDays:
+              type: string
+              minLength: 1
+        clubMemberSince:
+          type: string
+          minLength: 1
+        CancellationSRId:
+          type: string
+          minLength: 1
+        CancellationSRStatus:
+          type: string
+          minLength: 1
+        cancellationSRDate:
+          type: string
+          minLength: 1
+        paymentList:
+          type: array
+          uniqueItems: true
+          minItems: 1
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                minLength: 1
+              authorizationCode:
+                type: string
+                minLength: 1
+              creditCard:
+                type: object
+                properties:
+                  bin:
+                    type: string
+                    minLength: 1
+                  number:
+                    type: string
+                    minLength: 1
+                  brand:
+                    type: string
+                    minLength: 1
+                  nsu:
+                    type: string
+                    minLength: 1
+                  token:
+                    type: string
+                    minLength: 1
+                  gateway:
+                    type: string
+                    minLength: 1
+                required:
+                  - bin
+                  - number
+                  - brand
+                  - nsu
+                  - token
+                  - gateway
+              paymentDate:
+                type: string
+                minLength: 1
+              signatureId:
+                type: string
+                minLength: 1
+              status:
+                type: string
+                minLength: 1
+              totalValue:
+                type: string
+                minLength: 1
+              miles:
+                type: string
+                minLength: 1
+              validityPeriod:
+                type: string
+                minLength: 1
+              reference:
+                type: string
+                minLength: 1
+              paymentId:
+                type: string
+                minLength: 1
+              installmentQuantity:
+                type: string
+                minLength: 1
+              validityStartDate:
+                type: string
+                minLength: 1
+              validityEndDate:
+                type: string
+                minLength: 1
+            required:
+              - id
+              - authorizationCode
+              - paymentDate
+              - signatureId
+              - status
+              - totalValue
+              - miles
+              - validityPeriod
+              - reference
+              - paymentId
+              - installmentQuantity
+              - validityStartDate
+              - validityEndDate
+        newPlanId:
+          type: string
+          minLength: 1
+        newPlanOperationType:
+          type: string
+          minLength: 1
+        newPlanRequestedDate:
+          type: string
+          minLength: 1
+        newPlanName:
+          type: string
+          minLength: 1
+        currentCreditCard:
+          type: object
+          required:
+            - type
+            - holderName
+            - number
+            - expirationDate
+            - verificatonCode
+            - brand
+            - bin
+            - authorizationCode
+            - pspReference
+            - nsu
+            - acquiringCompany
+            - token
+            - transactionId
+            - issuingBank
+            - isPrimaty
+            - tokenAux
+            - identifier
+            - gateway
+          properties:
+            type:
+              type: string
+              minLength: 1
+            holderName:
+              type: string
+              minLength: 1
+            number:
+              type: string
+              minLength: 1
+            expirationDate:
+              type: string
+              minLength: 1
+            verificatonCode:
+              type: string
+              minLength: 1
+            brand:
+              type: string
+              minLength: 1
+            bin:
+              type: string
+              minLength: 1
+            authorizationCode:
+              type: string
+              minLength: 1
+            pspReference:
+              type: string
+              minLength: 1
+            nsu:
+              type: string
+              minLength: 1
+            acquiringCompany:
+              type: string
+              minLength: 1
+            token:
+              type: string
+              minLength: 1
+            transactionId:
+              type: string
+              minLength: 1
+            issuingBank:
+              type: string
+              minLength: 1
+            isPrimaty:
+              type: string
+              minLength: 1
+            tokenAux:
+              type: string
+              minLength: 1
+            identifier:
+              type: string
+              minLength: 1
+            gateway:
+              type: string
+              minLength: 1
+        pendingPlan:
+          type: object
+          required:
+            - id
+            - milesQuantity
+            - monthlyCost
+            - name
+            - dueDayList
+            - benefitList
+            - expirationDate
+            - cardBanner
+            - paymentBanner
+            - titleText
+            - paymentText
+            - enrollmentChannel
+            - isPromotional
+            - promotionalPrice
+            - promotionalPaymentNumber
+            - type
+            - annualCost
+            - installmentOptionList
+            - forecastDates
+            - validtyEndDate
+            - gracePeriodEndDate
+            - installmentQuantity
+            - transactionQuantity
+            - signatureCode
+            - paymentList
+            - autoRenewPlanMilesQty
+            - autoRenewPlanType
+            - autoRenewPlanAnnualCost
+            - milesPlan
+            - antecipatedPayDays
+          properties:
+            id:
+              type: string
+              minLength: 1
+            milesQuantity:
+              type: string
+              minLength: 1
+            monthlyCost:
+              type: string
+              minLength: 1
+            name:
+              type: string
+              minLength: 1
+            dueDayList:
+              type: string
+              minLength: 1
+            benefitList:
+              type: array
+              uniqueItems: true
+              minItems: 1
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    minLength: 1
+                  description:
+                    type: string
+                    minLength: 1
+                  name:
+                    type: string
+                    minLength: 1
+                  active:
+                    type: string
+                    minLength: 1
+                  brandNew:
+                    type: string
+                    minLength: 1
+                  icon:
+                    type: object
+                    properties:
+                      thumbs:
+                        type: string
+                        minLength: 1
+                      version:
+                        type: string
+                        minLength: 1
+                    required:
+                      - thumbs
+                      - version
+                required:
+                  - id
+                  - description
+                  - name
+                  - active
+                  - brandNew
+            expirationDate:
+              type: string
+              minLength: 1
+            cardBanner:
+              type: object
+              required:
+                - thumbs
+                - version
+              properties:
+                thumbs:
+                  type: string
+                  minLength: 1
+                version:
+                  type: string
+                  minLength: 1
+            paymentBanner:
+              type: object
+              required:
+                - thumbs
+                - version
+              properties:
+                thumbs:
+                  type: string
+                  minLength: 1
+                version:
+                  type: string
+                  minLength: 1
+            titleText:
+              type: string
+              minLength: 1
+            paymentText:
+              type: string
+              minLength: 1
+            enrollmentChannel:
+              type: string
+              minLength: 1
+            isPromotional:
+              type: string
+              minLength: 1
+            promotionalPrice:
+              type: string
+              minLength: 1
+            promotionalPaymentNumber:
+              type: string
+              minLength: 1
+            type:
+              type: string
+              minLength: 1
+            annualCost:
+              type: string
+              minLength: 1
+            installmentOptionList:
+              type: array
+              uniqueItems: true
+              minItems: 1
+              items:
+                type: object
+                properties:
+                  quantity:
+                    type: string
+                    minLength: 1
+                required:
+                  - quantity
+            forecastDates:
+              type: object
+              required:
+                - firstRecurrenceDate
+                - validtyEndDate
+                - gracePeriodEndDate
+              properties:
+                firstRecurrenceDate:
+                  type: string
+                  minLength: 1
+                validtyEndDate:
+                  type: string
+                  minLength: 1
+                gracePeriodEndDate:
+                  type: string
+                  minLength: 1
+            validtyEndDate:
+              type: string
+              minLength: 1
+            gracePeriodEndDate:
+              type: string
+              minLength: 1
+            installmentQuantity:
+              type: string
+              minLength: 1
+            transactionQuantity:
+              type: string
+              minLength: 1
+            signatureCode:
+              type: string
+              minLength: 1
+            paymentList:
+              type: array
+              uniqueItems: true
+              minItems: 1
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    minLength: 1
+                  authorizationCode:
+                    type: string
+                    minLength: 1
+                  creditCard:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                        minLength: 1
+                      holderName:
+                        type: string
+                        minLength: 1
+                      number:
+                        type: string
+                        minLength: 1
+                      expirationDate:
+                        type: string
+                        minLength: 1
+                      verificationCode:
+                        type: string
+                        minLength: 1
+                      brand:
+                        type: string
+                        minLength: 1
+                      bin:
+                        type: string
+                        minLength: 1
+                      authorizationCode:
+                        type: string
+                        minLength: 1
+                      pspReference:
+                        type: string
+                        minLength: 1
+                      nsu:
+                        type: string
+                        minLength: 1
+                      acquiringCompany:
+                        type: string
+                        minLength: 1
+                      token:
+                        type: string
+                        minLength: 1
+                      transactionId:
+                        type: string
+                        minLength: 1
+                      issuingBank:
+                        type: string
+                        minLength: 1
+                      isPrimary:
+                        type: string
+                        minLength: 1
+                      tokenAux:
+                        type: string
+                        minLength: 1
+                      identifier:
+                        type: string
+                        minLength: 1
+                      gateway:
+                        type: string
+                        minLength: 1
+                    required:
+                      - type
+                      - holderName
+                      - number
+                      - expirationDate
+                      - verificationCode
+                      - brand
+                      - bin
+                      - authorizationCode
+                      - pspReference
+                      - nsu
+                      - acquiringCompany
+                      - token
+                      - transactionId
+                      - issuingBank
+                      - isPrimary
+                      - tokenAux
+                      - identifier
+                      - gateway
+                  paymentDate:
+                    type: string
+                    minLength: 1
+                  signatureId:
+                    type: string
+                    minLength: 1
+                  status:
+                    type: string
+                    minLength: 1
+                  totalValue:
+                    type: string
+                    minLength: 1
+                  miles:
+                    type: string
+                    minLength: 1
+                  validityPeriod:
+                    type: string
+                    minLength: 1
+                  reference:
+                    type: string
+                    minLength: 1
+                  paymentId:
+                    type: string
+                    minLength: 1
+                  installmentQuantity:
+                    type: string
+                    minLength: 1
+                  validityStartDate:
+                    type: string
+                    minLength: 1
+                  validityEndDate:
+                    type: string
+                    minLength: 1
+                required:
+                  - id
+                  - authorizationCode
+                  - paymentDate
+                  - signatureId
+                  - status
+                  - totalValue
+                  - miles
+                  - validityPeriod
+                  - reference
+                  - paymentId
+                  - installmentQuantity
+                  - validityStartDate
+                  - validityEndDate
+            autoRenewPlanMilesQty:
+              type: string
+              minLength: 1
+            autoRenewPlanType:
+              type: string
+              minLength: 1
+            autoRenewPlanAnnualCost:
+              type: string
+              minLength: 1
+            milesPlan:
+              type: string
+              minLength: 1
+            antecipatedPayDays:
+              type: string
+              minLength: 1
+        renewSRId:
+          type: string
+          minLength: 1
+        renewSRNum:
+          type: string
+          minLength: 1
+        renewSrStatus:
+          type: string
+          minLength: 1
+        renewRequestDate:
+          type: string
+          minLength: 1
+        isRenewable:
+          type: string
+          minLength: 1
+        downgradeGracePeriod:
+          type: string
+          minLength: 1
+        downgradeGracePeriodDays:
+          type: string
+          minLength: 1
+        allowPromotional:
+          type: string
+          minLength: 1
+        clubNewSignatureSince:
+          type: string
+          minLength: 1
+        bonusVipBenefit:
+          type: object
+          properties:
+            id:
+              type: string
+              minLength: 1
+            bonus:
+              type: string
+              minLength: 1
+            bonusAvailable:
+              type: string
+              minLength: 1
+            bonusUsed:
+              type: string
+              minLength: 1
+            availableBonusValidity:
+              type: string
+              minLength: 1
+            nextBonusDate:
+              type: string
+              minLength: 1
+            activeBonusValidity:
+              type: string
+              minLength: 1
+            paymentList:
+              type: array
+              uniqueItems: true
+              minItems: 1
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    minLength: 1
+                  paymentDate:
+                    type: string
+                    minLength: 1
+                  status:
+                    type: string
+                    minLength: 1
+        promotionalFlg:
+          type: string
+          minLength: 1
+        oldSignatureStatus:
+          type: string
+          minLength: 1
+        oldSignatureUpgradeReqDate:
+          type: string
+          minLength: 1
+        clubSignDate:
+          type: string
+          minLength: 1
+        showOutlet:
+          type: string
+          minLength: 1
+        isNewAdhesion:
+          type: string
+          minLength: 1
+        allowAnticipation:
+          type: string
+          minLength: 1
+        allowCancellation:
+          type: string
+          minLength: 1
+      required:
+        - signatureCode
+        - membershipStatus
+        - currentPlan
+        - clubMemberSince
+        - CancellationSRId
+        - CancellationSRStatus
+        - cancellationSRDate
+        - paymentList
+        - newPlanId
+        - newPlanOperationType
+        - newPlanRequestedDate
+        - newPlanName
+        - currentCreditCard
+        - pendingPlan
+        - renewSRId
+        - renewSRNum
+        - renewSrStatus
+    PreCancelRequestType:
+      type: object
+      x-examples:
+        example-1:
+          signatureCode: string
+          isPlanUpgrading: boolean
+      properties:
+        signatureCode:
+          type: string
+        isPlanUpgrading:
+          type: boolean
+    PreCancelResponseType:
+      type: object
+      x-examples:
+        example-1:
+          cancellationRequested: boolean
+          signatureDate: dateTime
+          gracePeriodEndDate: dateTime
+          validityEndDate: dateTime
+          effectiveCancellationDate: dateTime
+          usedMiles: boolean
+          monthsToValidityEndDate: integer
+          monthsToGracePeriodoEndDate: integer
+          sevenDaysCancellation: boolean
+          cancellationCost: decimal
+          refundValue: decimal
+          paymentId: string
+          oldPaymentId: string
+          oldGracePeriodEndDate: dateTime
+          oldValidityEndDate: dateTime
+          oldMonthsToValidityEndDate: integer
+          oldMonthsToGracePeriodoEndDate: integer
+          oldCancellationCost: decimal
+          signatureCode: string
+          upgradeType: string
+          oldSignatureCode: string
+          isCanalPromo: boolean
+          isCancelTxnAdesao: boolean
+          isMilhasTodasUtilizadas: boolean
+          permiteCancelImediato: boolean
+          qtdMilhasResgatar: string
+          qtdMilhasARemoverDisplay: string
+      properties:
+        cancellationRequested:
+          type: boolean
+        signatureDate: {}
+        gracePeriodEndDate:
+          type: string
+        validityEndDate:
+          type: string
+        effectiveCancellationDate:
+          type: string
+        usedMiles:
+          type: boolean
+        monthsToValidityEndDate:
+          type: integer
+        monthsToGracePeriodoEndDate:
+          type: integer
+        sevenDaysCancellation:
+          type: boolean
+        cancellationCost:
+          type: number
+        refundValue:
+          type: number
+        paymentId:
+          type: string
+        oldPaymentId:
+          type: string
+        oldGracePeriodEndDate:
+          type: string
+        oldValidityEndDate:
+          type: string
+        oldMonthsToValidityEndDate:
+          type: integer
+        oldMonthsToGracePeriodoEndDate:
+          type: integer
+        oldCancellationCost:
+          type: number
+        signatureCode:
+          type: string
+        upgradeType:
+          type: string
+        oldSignatureCode:
+          type: string
+        isCanalPromo:
+          type: boolean
+        isCancelTxnAdesao:
+          type: boolean
+        isMilhasTodasUtilizadas:
+          type: boolean
+        permiteCancelImediato:
+          type: boolean
+        qtdMilhasResgatar:
+          type: string
+        qtdMilhasARemoverDisplay:
+          type: string
+    PendingPayment:
+      title: PendingPayment
+      type: object
+      properties:
+        memberNumber:
+          type: string
+        signatureCode:
+          type: string
+        id:
+          type: string
+        status:
+          type: string
+        paymentDate:
+          type: string
+        validity:
+          type: string
+        miles:
+          type: integer
+        totalValue:
+          type: integer
+      required:
+        - memberNumber
+        - signatureCode
+    ListPendingPaymentsResponse:
+      title: ListPendingPaymentsResponse
+      type: object
+      properties:
+        pendingPayments:
+          type: array
+          items:
+            $ref: '#/components/schemas/PendingPayment'
+    SearchRelatedPlanRequestType:
+      title: SearchRelatedPlanType
+      x-stoplight:
+        id: il2ghn0z0ytmo
+      type: object
+      properties:
+        memberNumber:
+          type: string
+        planId:
+          type: string
+        migrationType:
+          type: string
+        promotionChannel:
+          type: string
+      required:
+        - planId
+        - migrationType
+    SearchRelatedPlanResponseType:
+      title: SearchRelatedPlanResponse
+      x-stoplight:
+        id: 13c4awar23sty
+      type: object
+      properties:
+        relatedChannel:
+          type: string
+        isPromotional:
+          type: boolean
+        relatedPlanList:
+          type: array
+          items:
+            $ref: '#/components/schemas/relatedPlanType'
+    relatedPlanType:
+      title: relatedPlanType
+      x-stoplight:
+        id: a03i8j0a2ykv3
+      type: object
+      properties:
+        id:
+          type: string
+        originPlan:
+          $ref: '#/components/schemas/PlanType'
+        destinationPlan:
+          $ref: '#/components/schemas/PlanType'
+        migrationType:
+          type: string
+    PlanType:
+      title: PlanType
+      x-stoplight:
+        id: usqwh60571oit
+      type: object
+      properties:
+        id:
+          type: string
+        milesQuantity:
+          type: string
+        monthlyCost:
+          type: string
+        name:
+          type: string
+        dueDayList:
+          type: array
+          items:
+            type: string
+        benefitList:
+          type: array
+          items:
+            $ref: '#/components/schemas/BenefitType'
+        expiredDate:
+          type: string
+        cardBanner:
+          $ref: '#/components/schemas/ThumbsVersionType'
+        paymentBanner:
+          $ref: '#/components/schemas/ThumbsVersionType'
+        titleText:
+          type: string
+        paymentText:
+          type: string
+        enrollmentChannel:
+          type: string
+        isPromotional:
+          type: boolean
+        promotionalPrice:
+          type: string
+        promotionalPaymentNumber:
+          type: string
+        type:
+          type: string
+        annualCost:
+          type: string
+        installmentOptionList:
+          type: array
+          items:
+            $ref: '#/components/schemas/InstallmentOptionType'
+        validity:
+          type: string
+        gracePeriod:
+          type: string
+        automaticRenewal:
+          type: string
+        forecastDates:
+          $ref: '#/components/schemas/ForecastDatesType'
+        validityEndDate:
+          type: string
+        gracePeriodEndDate:
+          type: string
+        installmentQuantity:
+          type: string
+        transactionQuantity:
+          type: string
+        signatureCode:
+          type: string
+        paymentList:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaymentType'
+        autoRenewPlanMilesQty:
+          type: string
+        autoRenewPlanType:
+          type: string
+        autoRenewPlanAnnualCost:
+          type: string
+        milesPlan:
+          type: string
+        antecipatedPayDays:
+          type: string
+      description: ''
+    BenefitType:
+      title: BenefitType
+      x-stoplight:
+        id: bx474rpdo63uz
+      type: object
+      properties:
+        id:
+          type: string
+        description:
+          type: string
+        name:
+          type: string
+        active:
+          type: string
+        brandNew:
+          type: string
+        icon:
+          $ref: '#/components/schemas/IconType'
+    ThumbsVersionType:
+      title: ThumbsVersionType
+      x-stoplight:
+        id: p0w9s4wc4k0m4
+      type: object
+      properties:
+        thumbs:
+          type: string
+        version:
+          type: string
+  securitySchemes:
+    Auth0:
+      type: oauth2
+      flows: {}
+      x-amazon-apigateway-authorizer:
+        identitySource: $request.header.Authorization
+        jwtConfiguration:
+          audience:
+            - 'Fn::Sub': '${Auth0CustomAudience}'
+          issuer:
+            'Fn::Sub': '${Auth0CustomTokenIssuer}'
+        type: jwt

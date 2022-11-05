@@ -1,0 +1,357 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: API Smiles Club V2 (Projeto Migracao OSB/SOA - AWS)
+
+## ____________________________ PARAMETERS 👇 __________________________________
+
+Parameters:
+  Auth0CustomAudience:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Description: URL do Custom Audience do Auth0
+
+  Auth0CustomTokenIssuer:
+    Type: "AWS::SSM::Parameter::Value<String>"
+    Description: URL do Custom Token Issuer do Auth0
+
+  DefaultLoggerLevelSSM:
+    Type: String
+    Default: ERROR
+
+  secretFamily:
+    Type: String
+    Default: dev/OracleDBSiebel/intef
+
+  secretFamilyAr:
+    Type: String
+    Default: dev/OracleDBSiebel/intefar
+
+  SiebelEndpoint:
+    Type: String
+
+  ClubSoapEndpoint:
+    Type: String
+
+  ReservationsEndpoint:
+    Type: String
+
+  ClubRestEndpoint:
+    Type: String
+
+  LiferayEndpoint:
+    Type: String
+
+  ENV:
+    Type: String
+
+  NewSiebelEndpoint:
+    Type: String
+
+## ___________________________ CONDITIONS 👇 ____________________________________
+
+Conditions:
+  isItProd: !Or
+    - !Equals [!Select [1, !Split ["-", !Ref "AWS::StackName"]], blue]
+    - !Equals [!Select [1, !Split ["-", !Ref "AWS::StackName"]], green]
+    - !Equals [!Select [1, !Split ["-", !Ref "AWS::StackName"]], prd]
+
+## _____________________ GLOBALS 👇 __________________________
+
+Globals:
+  Function:
+    Tracing: Active
+    MemorySize: 256
+    Timeout: 30
+    Layers:
+      - !Ref RuntimeDependenciesLayer
+    Runtime: nodejs16.x
+    VpcConfig:
+      SecurityGroupIds:
+        - Fn::ImportValue:
+            Fn::Join:
+              - "-"
+              - - cfstack
+                - !Select [1, !Split ["-", Ref: "AWS::StackName"]]
+                - smiles-cf-resources-infra-LambdaSecurityGroup
+      SubnetIds:
+        Fn::Split:
+          - ","
+          - Fn::ImportValue:
+              Fn::Join:
+                - "-"
+                - - cfstack
+                  - !Select [1, !Split ["-", Ref: "AWS::StackName"]]
+                  - smiles-cf-resources-infra-PrivateSubnets
+    Environment:
+      Variables:
+        NODE_TLS_REJECT_UNAUTHORIZED: 0
+        LOGGER_LEVEL: !If [isItProd, !Ref DefaultLoggerLevelSSM, "DEBUG"]
+        SIEBEL_USERNAME: !Sub "{{resolve:secretsmanager:${secretFamily}:SecretString:username}}"
+        SIEBEL_PASSWORD: !Sub "{{resolve:secretsmanager:${secretFamily}:SecretString:password}}"
+        SIEBEL_USERNAME_AR: !Sub "{{resolve:secretsmanager:${secretFamilyAr}:SecretString:username}}"
+        SIEBEL_PASSWORD_AR: !Sub "{{resolve:secretsmanager:${secretFamilyAr}:SecretString:password}}"
+        SIEBEL_ENDPOINT: !Ref SiebelEndpoint
+        NEW_SIEBEL_ENDPOINT: !Ref NewSiebelEndpoint
+        CLUB_SOAP_ENDPOINT: !Ref ClubSoapEndpoint
+        RESERVATIONS_ENDPOINT: !Ref ReservationsEndpoint
+        CLUB_REST_ENDPOINT: !Ref ClubRestEndpoint
+        LIFERAY_ENDPOINT: !Ref LiferayEndpoint
+        ENV: !Ref ENV
+
+## ____________________________ RESOURCES 👇 ____________________________________
+
+Resources:
+  RuntimeDependenciesLayer:
+    Type: AWS::Serverless::LayerVersion
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      Description: Runtime dependencies for Lambdas
+      ContentUri: ./
+      CompatibleRuntimes:
+        - nodejs16.x
+      RetentionPolicy: Retain
+
+  SmilesClubHttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      AccessLogSettings:
+        DestinationArn: !Sub ${SmilesClubHttpApiLogGroup.Arn}
+        Format: "$context.requestId | $context.error.message | $context.integrationErrorMessage | $context.authorizer.error"
+      StageName: LIVE
+      DefinitionBody:
+        Fn::Transform:
+          Name: AWS::Include
+          Parameters:
+            Location: openapi.yaml
+
+  SmilesClubHttpApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/vendedlogs/${SmilesClubHttpApi}
+      RetentionInDays: 30
+
+  SmilesClubApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Join ["-", [Ref: "AWS::StackName", "private-api"]]
+      AccessLogSetting:
+        DestinationArn: !Sub ${SmilesClubHttpApiLogGroup.Arn}
+        Format: "$context.requestId | $context.error.message | $context.integrationErrorMessage | $context.authorizer.error | $context.identity.sourceIp"
+      StageName: LIVE
+      EndpointConfiguration: REGIONAL
+      Auth:
+        ResourcePolicy:
+          CustomStatements:
+            - Effect: Allow
+              Principal: "*"
+              Action: execute-api:Invoke
+              Resource:
+                - "execute-api:/*/*/*"
+            - Effect: Deny
+              Principal: "*"
+              Action: execute-api:Invoke
+              Resource:
+                - "execute-api:/*/*/*"
+              Condition:
+                NotIpAddress:
+                  aws:SourceIp:
+                    - !If [isItProd, "54.86.74.29", "*"]
+                    - " 187.72.92.193"
+
+  BasePathMapping:
+    Type: AWS::ApiGatewayV2::ApiMapping
+    Properties:
+      DomainName:
+        Fn::ImportValue:
+          Fn::Join:
+            - "-"
+            - - cfstack
+              - !Select [1, !Split ["-", Ref: "AWS::StackName"]]
+              - smiles-api-domains-cf-infra
+              - CustomDomainBr
+      ApiId: !Ref SmilesClubHttpApi
+      Stage: !Ref SmilesClubHttpApi.Stage
+      ApiMappingKey: "cs/plan"
+
+  BasePathMappingRest:
+    Type: AWS::ApiGatewayV2::ApiMapping
+    Properties:
+      DomainName:
+        Fn::ImportValue:
+          Fn::Join:
+            - "-"
+            - - cfstack
+              - !Select [1, !Split ["-", Ref: "AWS::StackName"]]
+              - smiles-api-domains-cf-infra
+              - CustomDomainBr
+      ApiId: !Ref SmilesClubApi
+      Stage: !Ref SmilesClubApi.Stage
+      ApiMappingKey: "cs/plan/soap"
+
+  ListPendingPayments:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      FunctionName:
+        Fn::Join:
+          - "-"
+          - - Ref: AWS::StackName
+            - ListPendingPayments
+      Handler: dist/handlers/listPendingPayments.handler
+      Role:
+        Fn::ImportValue:
+          Fn::Join: ["-", [Ref: "AWS::StackName", "infra", "app", "role"]]
+      Events:
+        HttpApi:
+          Type: HttpApi
+          Properties:
+            Path: /payments/pending
+            Method: post
+            ApiId: !Ref SmilesClubHttpApi
+
+  ListPendingPaymentsLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${ListPendingPayments}
+      RetentionInDays: 30
+
+  GetMemberPlan:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      FunctionName:
+        Fn::Join:
+          - "-"
+          - - Ref: AWS::StackName
+            - GetMemberPlan
+      Handler: dist/handlers/getMemberPlan.handler
+      Role:
+        Fn::ImportValue:
+          Fn::Join: ["-", [Ref: "AWS::StackName", "infra", "app", "role"]]
+      Events:
+        HttpApi:
+          Type: HttpApi
+          Properties:
+            Path: /plans/details
+            Method: get
+            ApiId: !Ref SmilesClubHttpApi
+
+  GetMemberPlanLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${GetMemberPlan}
+      RetentionInDays: 30
+
+  PreCancel:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      FunctionName:
+        Fn::Join:
+          - "-"
+          - - Ref: AWS::StackName
+            - PreCancel
+      Handler: dist/handlers/preCancel.handler
+      Role:
+        Fn::ImportValue:
+          Fn::Join: ["-", [Ref: "AWS::StackName", "infra", "app", "role"]]
+      Events:
+        HttpApi:
+          Type: HttpApi
+          Properties:
+            Path: /plans/precancel
+            Method: delete
+            ApiId: !Ref SmilesClubHttpApi
+
+  PreCancelLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${PreCancel}
+      RetentionInDays: 30
+
+  SearchAvailablePlan:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      FunctionName:
+        Fn::Join:
+          - "-"
+          - - Ref: AWS::StackName
+            - SearchAvailablePlan
+      Handler: dist/handlers/searchAvailablePlan.handler
+      Role:
+        Fn::ImportValue:
+          Fn::Join: ["-", [Ref: "AWS::StackName", "infra", "app", "role"]]
+      Events:
+        HttpApi:
+          Type: HttpApi
+          Properties:
+            Path: /plans/available
+            Method: get
+            ApiId: !Ref SmilesClubHttpApi
+
+  SearchAvailablePlanLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${SearchAvailablePlan}
+      RetentionInDays: 30
+
+  SearchRelatedPlan:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      FunctionName:
+        Fn::Join:
+          - "-"
+          - - Ref: AWS::StackName
+            - SearchRelatedPlan
+      Handler: dist/handlers/searchRelatedPlan.handler
+      Role:
+        Fn::ImportValue:
+          Fn::Join: ["-", [Ref: "AWS::StackName", "infra", "app", "role"]]
+      Events:
+        HttpApi:
+          Type: HttpApi
+          Properties:
+            Path: /plans/related
+            Method: get
+            ApiId: !Ref SmilesClubHttpApi
+
+  SearchRelatedPlanLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${SearchRelatedPlan}
+      RetentionInDays: 30
+
+  ClubSOAP:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      FunctionName:
+        Fn::Join:
+          - "-"
+          - - Ref: AWS::StackName
+            - ClubSOAP
+      Handler: dist/handlers/clubSoap.handler
+      Role:
+        Fn::ImportValue:
+          Fn::Join: ["-", [Ref: "AWS::StackName", "infra", "app", "role"]]
+      Events:
+        RestApi:
+          Type: Api
+          Properties:
+            Path: /clubplan
+            Method: post
+            RestApiId: !Ref SmilesClubApi
+
+  ClubSOAPLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${ClubSOAP}
+      RetentionInDays: 30
